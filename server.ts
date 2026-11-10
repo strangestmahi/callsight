@@ -66,6 +66,7 @@ interface ChatMessage {
   senderName: string;
   content: string;
   timestamp: number;
+  isVoiceSpoken?: boolean;
 }
 
 const users: User[] = [
@@ -311,7 +312,8 @@ wssSignaling.on('connection', (ws: WebSocket, req) => {
           senderId: userId,
           senderName: data.senderName || 'Participant',
           content: data.content,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          isVoiceSpoken: Boolean(data.isVoiceSpoken)
         };
         chatMessagesStore.push(newMsg);
       }

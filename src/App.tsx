@@ -10,7 +10,8 @@ import { CallHistoryScreen } from './components/CallHistoryScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { TestingPanel } from './components/TestingPanel';
 import { CodeInspectorModal } from './components/CodeInspectorModal';
-import { User, CallRecord, TranscriptItem, SmartHighlight, ChatMessage, ScreenType } from './types';
+import { User, CallRecord, TranscriptItem, SmartHighlight, ChatMessage, ScreenType, CommunicationMode } from './types';
+import { TextToVoiceService } from './services/textToVoice';
 
 export default function App() {
   // Current logged in user
@@ -47,6 +48,7 @@ export default function App() {
   const [showCodeInspector, setShowCodeInspector] = useState(false);
   const [selectedHistoryCallId, setSelectedHistoryCallId] = useState<string | null>(null);
   const [isDualDeviceMode, setIsDualDeviceMode] = useState(false);
+  const [communicationMode, setCommunicationMode] = useState<CommunicationMode>('text_to_voice');
 
   // WebSockets Refs
   const signalingWsRef = useRef<WebSocket | null>(null);
@@ -75,15 +77,22 @@ export default function App() {
         } else if (data.type === 'call_ended') {
           handleEndCall();
         } else if (data.type === 'text_message') {
+          const isSpoken = Boolean(data.is_voice_spoken || data.isVoiceSpoken);
           const newMsg: ChatMessage = {
             id: `msg_${Date.now()}`,
             callId: data.call_id || 'call_current',
             senderId: data.sender_id,
             senderName: data.sender_name || 'Partner',
             content: data.content,
-            timestamp: data.timestamp || Date.now()
+            timestamp: data.timestamp || Date.now(),
+            isVoiceSpoken: isSpoken
           };
           setChatMessages((prev) => [...prev, newMsg]);
+
+          // Vocalize incoming message if marked as spoken aloud
+          if (isSpoken) {
+            TextToVoiceService.getInstance().speak(data.content);
+          }
         }
       } catch (err) {
         console.error('Error handling signaling message:', err);
@@ -234,15 +243,17 @@ export default function App() {
     setCurrentScreen('home');
   };
 
-  const handleSendTextMessage = (content: string) => {
+  const handleSendTextMessage = (content: string, isVoiceSpoken?: boolean) => {
     if (!activeCall || !currentUser) return;
+    const isSpoken = Boolean(isVoiceSpoken);
     const newMsg: ChatMessage = {
       id: `msg_${Date.now()}`,
       callId: activeCall.id,
       senderId: currentUser.id,
       senderName: currentUser.name,
       content,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isVoiceSpoken: isSpoken
     };
     setChatMessages((prev) => [...prev, newMsg]);
 
@@ -256,7 +267,8 @@ export default function App() {
           sender_id: currentUser.id,
           sender_name: currentUser.name,
           content,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          is_voice_spoken: isSpoken
         })
       );
     }
@@ -318,6 +330,8 @@ export default function App() {
         isCallActive={Boolean(activeCall)}
         isInSilentMode={currentScreen === 'silent_reading'}
         isDualDeviceMode={isDualDeviceMode}
+        communicationMode={communicationMode}
+        onSwitchMode={setCommunicationMode}
         onToggleDualDevice={() => setIsDualDeviceMode(!isDualDeviceMode)}
         onOpenCodeInspector={() => setShowCodeInspector(true)}
       />
@@ -381,6 +395,8 @@ export default function App() {
               <ActiveCallScreen
                 call={activeCall}
                 caller={activePartner}
+                communicationMode={communicationMode}
+                onSwitchMode={setCommunicationMode}
                 onEndCall={handleEndCall}
                 onOpenSilentReadingMode={() => setCurrentScreen('silent_reading')}
               />
@@ -396,6 +412,8 @@ export default function App() {
                 smartHighlights={smartHighlights}
                 chatMessages={chatMessages}
                 isPaused={isTranscriptionPaused}
+                communicationMode={communicationMode}
+                onSwitchMode={setCommunicationMode}
                 onTogglePause={() => setIsTranscriptionPaused(!isTranscriptionPaused)}
                 onSendTextMessage={handleSendTextMessage}
                 onEndCall={handleEndCall}
@@ -448,28 +466,70 @@ export default function App() {
                     <div className="pt-2 flex flex-col items-center">
                       <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950 border border-emerald-700 rounded-full mb-1">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[10px] font-bold text-emerald-300">Call Connected • Speaking</span>
+                        <span className="text-[10px] font-bold text-emerald-300">Call Connected • Audio Stream Live</span>
                       </div>
                       <span className="text-sm font-mono text-cyan-300 font-bold">{formatDuration(callDurationSec)}</span>
                       <h4 className="text-sm font-bold text-white mt-1">Talking to Marcus Sterling</h4>
+
+                      {/* Partner Mode Indicator */}
+                      <div className="mt-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1.5 border border-cyan-800/60 bg-[#101B2E]">
+                        {communicationMode === 'speaking' || communicationMode === 'voice' ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            <span className="text-emerald-300 font-bold">Marcus: Speaking Mode (Voice Live)</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                            <span className="text-cyan-300">Marcus: Transcribing Mode (Reading Captions)</span>
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Elena's Speech & Real-Time Silent Replies Monitor */}
+                    {/* Elena's Monitor for Marcus's Silent Replies & Spoken Voice Replies */}
                     <div className="flex-1 overflow-y-auto my-3 p-3 bg-[#0F1626] border border-slate-800 rounded-2xl flex flex-col gap-2">
                       <div className="text-[10px] text-slate-400 border-b border-slate-800 pb-1 flex items-center justify-between">
-                        <span>Silent Messages from Marcus:</span>
-                        <span className="text-cyan-400">{chatMessages.length} received</span>
+                        <span>Messages from Marcus:</span>
+                        <span className="text-cyan-400 font-bold">{chatMessages.length} received</span>
                       </div>
 
                       {chatMessages.length === 0 ? (
-                        <div className="my-auto text-center text-slate-500 text-xs italic">
-                          Marcus can type silent text replies while reading your captions.
+                        <div className="my-auto text-center text-slate-500 text-xs italic p-4">
+                          When Marcus replies via Silent Text or Text-to-Voice (TTS), messages appear here and audio plays aloud.
                         </div>
                       ) : (
                         chatMessages.map((msg) => (
-                          <div key={msg.id} className="p-2.5 bg-cyan-950 border border-cyan-800 rounded-xl">
-                            <span className="text-[10px] font-bold text-cyan-400 block mb-0.5">{msg.senderName} (Silent Reply):</span>
-                            <span className="text-xs text-white leading-relaxed">{msg.content}</span>
+                          <div
+                            key={msg.id}
+                            className={`p-2.5 rounded-xl border ${
+                              msg.isVoiceSpoken
+                                ? 'bg-gradient-to-r from-cyan-950 via-[#0B2533] to-[#0E1B2C] border-cyan-500 shadow-md ring-1 ring-cyan-500/40'
+                                : 'bg-[#152033] border-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-bold mb-1">
+                              <span className="flex items-center gap-1">
+                                {msg.isVoiceSpoken ? (
+                                  <>
+                                    <span className="text-cyan-400 font-extrabold flex items-center gap-1">
+                                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                                      Spoken to Elena (Text-to-Voice):
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-slate-400 font-semibold">Silent Message from Marcus:</span>
+                                )}
+                              </span>
+                              {msg.isVoiceSpoken && (
+                                <span className="px-1.5 py-0.2 bg-cyan-500 text-black font-extrabold rounded text-[8px]">
+                                  VOICE SYNTHESIZED
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-white leading-relaxed font-medium block">
+                              "{msg.content}"
+                            </span>
                           </div>
                         ))
                       )}
@@ -478,7 +538,7 @@ export default function App() {
                     {/* Speech Prompt & End Call */}
                     <div className="space-y-2 pb-2">
                       <div className="p-2.5 bg-[#12192B] rounded-xl border border-slate-800 text-[11px] text-slate-300">
-                        <span className="text-cyan-400 font-bold">Speaking into mic:</span> Audio frames downsample to 16kHz signed 16-bit PCM for Gnani Prisma STT.
+                        <span className="text-cyan-400 font-bold">Audio Track:</span> Elena speaks into microphone (downsampled to 16kHz PCM) and hears Marcus's synthesized TTS voice responses.
                       </div>
                       <button
                         onClick={handleEndCall}

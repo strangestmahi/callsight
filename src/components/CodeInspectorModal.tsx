@@ -112,6 +112,46 @@ class WebRtcManager(
     }
 }`
     },
+    'TextToVoiceSynthesizer.kt': {
+      lang: 'kotlin',
+      path: 'android/app/src/main/java/com/callsight/app/webrtc/TextToVoiceSynthesizer.kt',
+      code: `package com.callsight.app.webrtc
+
+import android.content.Context
+import android.speech.tts.TextToSpeech
+import java.util.Locale
+
+/**
+ * Text-to-Voice (TTS) Synthesizer for CallSight.
+ * Converts typed messages into synthesized speech during active calls.
+ * Enables non-vocal participants to communicate directly into the remote caller's audio stream.
+ */
+class TextToVoiceSynthesizer(
+    private val context: Context,
+    private val onInitComplete: (Boolean) -> Unit = {}
+) : TextToSpeech.OnInitListener {
+    private var tts: TextToSpeech? = null
+
+    init {
+        tts = TextToSpeech(context, this)
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts?.language = Locale.getDefault()
+            onInitComplete(true)
+        }
+    }
+
+    fun speak(text: String, onStart: () -> Unit = {}, onDone: () -> Unit = {}) {
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_\${System.currentTimeMillis()}")
+    }
+
+    fun stop() {
+        tts?.stop()
+    }
+}`
+    },
     'gnani_stt.py': {
       lang: 'python',
       path: 'backend/app/services/gnani_stt.py',
@@ -261,6 +301,16 @@ class SmartHighlightsEngine:
                   }`}
                 >
                   WebRtcManager.kt
+                </button>
+                <button
+                  onClick={() => setSelectedFile('TextToVoiceSynthesizer.kt')}
+                  className={`px-2.5 py-1 text-[11px] rounded-lg border ${
+                    selectedFile === 'TextToVoiceSynthesizer.kt'
+                      ? 'bg-cyan-950 text-cyan-300 border-cyan-700'
+                      : 'bg-slate-800/60 text-slate-400 border-slate-700'
+                  }`}
+                >
+                  TextToVoiceSynthesizer.kt
                 </button>
               </>
             ) : (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mic, MicOff, PhoneCall, Sparkles, Code, Play, RefreshCw, Layers, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { AudioStreamingManager } from '../services/audioCapture';
+import { CommunicationMode } from '../types';
 
 interface TestingPanelProps {
   onSimulateSpeech: (text: string, isFinal: boolean) => void;
@@ -8,6 +9,8 @@ interface TestingPanelProps {
   isCallActive: boolean;
   isInSilentMode: boolean;
   isDualDeviceMode: boolean;
+  communicationMode?: CommunicationMode;
+  onSwitchMode?: (mode: CommunicationMode) => void;
   onToggleDualDevice: () => void;
   onOpenCodeInspector: () => void;
 }
@@ -18,6 +21,8 @@ export const TestingPanel: React.FC<TestingPanelProps> = ({
   isCallActive,
   isInSilentMode,
   isDualDeviceMode,
+  communicationMode = 'transcribing',
+  onSwitchMode,
   onToggleDualDevice,
   onOpenCodeInspector
 }) => {
@@ -81,6 +86,34 @@ export const TestingPanel: React.FC<TestingPanelProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onSwitchMode && (
+            <div className="flex items-center bg-[#131C30] p-0.5 rounded-xl border border-slate-700">
+              <button
+                onClick={() => onSwitchMode('transcribing')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 transition-all ${
+                  communicationMode !== 'speaking' && communicationMode !== 'voice'
+                    ? 'bg-cyan-400 text-black font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Switch to Transcribing Mode (Captions & text)"
+              >
+                <span>Transcribing</span>
+              </button>
+              <button
+                onClick={() => onSwitchMode('speaking')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 transition-all ${
+                  communicationMode === 'speaking' || communicationMode === 'voice'
+                    ? 'bg-emerald-400 text-black font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Switch to Speaking Mode (Microphone Live)"
+              >
+                <Mic size={12} />
+                <span>Speaking</span>
+              </button>
+            </div>
+          )}
+
           <button
             onClick={onToggleDualDevice}
             className={`px-3 py-1.5 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-colors ${
@@ -90,7 +123,7 @@ export const TestingPanel: React.FC<TestingPanelProps> = ({
             }`}
           >
             <Layers size={14} className={isDualDeviceMode ? 'text-black' : 'text-cyan-400'} />
-            <span>{isDualDeviceMode ? 'Dual Device Mode (Active)' : 'Two-Device Mode'}</span>
+            <span>{isDualDeviceMode ? 'Dual Device Mode' : 'Two-Device Mode'}</span>
           </button>
 
           <button
@@ -98,7 +131,7 @@ export const TestingPanel: React.FC<TestingPanelProps> = ({
             className="px-3 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 text-xs font-semibold rounded-xl border border-cyan-800/60 flex items-center gap-1.5 transition-colors"
           >
             <Code size={14} className="text-cyan-400" />
-            <span>View Native Architecture</span>
+            <span>View Architecture</span>
           </button>
         </div>
       </div>
@@ -169,6 +202,10 @@ export const TestingPanel: React.FC<TestingPanelProps> = ({
                 <div className="text-[10px] text-slate-400 truncate">{u.text}</div>
               </button>
             ))}
+          </div>
+
+          <div className="pt-1 flex items-center justify-between text-[10px] text-slate-400">
+            <span>Bidirectional Mode: Switch between Voice-to-Text & Text-to-Voice</span>
           </div>
         </div>
       </div>

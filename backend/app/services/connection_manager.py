@@ -96,7 +96,8 @@ class ConnectionManager:
                     "sender_id": sender_id,
                     "sender_name": payload.get("sender_name", "User"),
                     "content": payload.get("content", ""),
-                    "timestamp": payload.get("timestamp")
+                    "timestamp": payload.get("timestamp"),
+                    "is_voice_spoken": payload.get("is_voice_spoken", False)
                 })
 
 manager = ConnectionManager()

@@ -39,6 +39,8 @@ export interface TranscriptItem {
   highlights?: SmartHighlight[];
 }
 
+export type CommunicationMode = 'transcribing' | 'speaking' | 'text_to_voice' | 'silent' | 'voice';
+
 export interface ChatMessage {
   id: string;
   callId: string;
@@ -46,6 +48,7 @@ export interface ChatMessage {
   senderName: string;
   content: string;
   timestamp: number;
+  isVoiceSpoken?: boolean; // True if played aloud as synthesized voice to remote caller
 }
 
 export type ScreenType = 
@@ -58,3 +61,4 @@ export type ScreenType =
   | 'history'
   | 'transcript_detail'
   | 'settings';
+

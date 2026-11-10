@@ -95,17 +95,54 @@ fun ActiveCallScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // Mode Switcher Bar (Speaking Mode ⇄ Transcribing Mode)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(SurfaceCard, RoundedCornerShape(16.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    onClick = { isMuted = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (!isMuted) Color(0xFF059669) else Color.Transparent,
+                        contentColor = if (!isMuted) Color.Black else TextSecondary
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Mic, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Speaking", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onEnterSilentReadingMode,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isMuted) TealAccent else Color.Transparent,
+                        contentColor = if (isMuted) Color.Black else TextSecondary
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Transcribing", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
             Button(
                 onClick = onEnterSilentReadingMode,
                 colors = ButtonDefaults.buttonColors(containerColor = TealAccent, contentColor = Color.Black),
                 shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
                 Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text("Enter Silent Reading Mode", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Read live captions & respond via text", fontSize = 10.sp, color = Color(0xFF00363D))
+                    Text("Open Transcribing Mode", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Read live captions & respond via text or voice", fontSize = 10.sp, color = Color(0xFF00363D))
                 }
             }
 

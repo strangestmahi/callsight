@@ -48,4 +48,5 @@ class TextMessage(Base):
     sender_id = Column(String, ForeignKey("users.id"), nullable=False)
     sender_name = Column(String, nullable=False)
     content = Column(String, nullable=False)
+    is_voice_spoken = Column(Boolean, default=False)
     sent_at = Column(DateTime, default=datetime.utcnow)

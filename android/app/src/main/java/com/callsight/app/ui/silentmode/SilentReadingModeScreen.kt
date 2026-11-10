@@ -39,10 +39,12 @@ fun SilentReadingModeScreen(
     chatMessages: List<ChatMessage>,
     onTogglePause: () -> Unit,
     onSendTextMessage: (String) -> Unit,
+    onSpeakAloud: (String) -> Unit = {},
     onEndCall: () -> Unit,
     onBackToCall: () -> Unit
 ) {
     var textInput by remember { mutableStateOf("") }
+    var isTextToVoiceActive by remember { mutableStateOf(true) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var showHighlightsSheet by remember { mutableStateOf(false) }
@@ -226,7 +228,23 @@ fun SilentReadingModeScreen(
                         ),
                         maxLines = 3
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    // Speak Aloud Button (Text-to-Voice)
+                    IconButton(
+                        onClick = {
+                            if (textInput.isNotBlank()) {
+                                onSpeakAloud(textInput.trim())
+                                textInput = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(Color(0xFF004F59))
+                    ) {
+                        Icon(Icons.Default.VolumeUp, contentDescription = "Speak Aloud via TTS", tint = TealAccent)
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    // Send Silent Text Button
                     IconButton(
                         onClick = {
                             if (textInput.isNotBlank()) {
