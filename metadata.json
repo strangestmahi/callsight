@@ -1,0 +1,6 @@
+{
+  "name": "CallSight",
+  "description": "AI-Powered Live Call Transcription and Silent Communication app for accessibility.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
